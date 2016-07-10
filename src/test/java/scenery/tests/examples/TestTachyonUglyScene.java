@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * Created by mader on 7/9/16.
  */
-public class TestTachyonSceneExample {
+public class TestTachyonUglyScene {
     @Test
     public void testExample() throws Exception {
         NNDemoApp viewer = new NNDemoApp( "scenery - Neural Network Demo", 800,
@@ -140,6 +140,7 @@ public class TestTachyonSceneExample {
         }
 
         protected void makeUglyScene(final Camera cam, Map<String,Material> matList) {
+
             {
                 final Box box = new Box(new GLVector(0.1875f, 0.1875f, 0.1875f) );
                 box.setMaterial( getTexture("bw_173",matList) );
@@ -5523,6 +5524,7 @@ public class TestTachyonSceneExample {
                 light.setIntensity( 1 );
                 getScene().addChild( light );
             }
+
         }
 
 
