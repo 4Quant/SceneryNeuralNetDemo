@@ -2,34 +2,72 @@ package scenery.tests
 
 import cleargl.GLVector
 import org.scalatest.{FunSuite, Matchers}
-import play.api.libs.json.Json
+import play.api.libs.json._
 import scenery._
-import scenery.simple.SimpleScene
-import scenery.simple.providers.{SmartMaterialProvider, EmptyAction, SceneProvider, StandardMaterials}
-import scenery.tests.TestSceneThings.SingleBoxScene
+import scenery.simple.providers._
+import scenery.simple.{SceneObject, SimpleScene}
 
 class TestTachyonSceneReader extends FunSuite with Matchers {
-  val nn_demo_file = getClass().getResource("scenes/nn_demo.json")
+
+  val nn_demo_file = getClass().getResource("/scenery/tests/scenes/nn_demo.json")
+  import SceneObject.implicits._
+
   test("Finding JSON resource") {
     nn_demo_file should not be null
     println(nn_demo_file.getFile)
   }
+
+  test("Parse some simple JSON") {
+
+    val in_text = Json.parse(
+      """[{"shape": "box", "z_pos": 0.0, "x_dim": 0.25, "x_pos": -6.0, "y_pos": -6.0, "y_dim":
+        | 0.25, "z_dim": 0.25, "texture": ""}, {"shape": "box", "z_pos": 0.0, "x_dim": 0.25, "x_pos": -6.0, "y_pos": -4.9090909090909083, "y_dim": 0.25, "z_dim": 0.25, "texture": ""}]""".stripMargin)
+
+    val form_list = Json.fromJson[Array[SceneObject]](in_text)
+
+    println(form_list)
+
+    form_list match {
+      case JsSuccess(cValue,_) => println(cValue.mkString(","))
+      case JsError(errors) => fail(s"List was not parsed correctly ${errors.mkString(",")}")
+    }
+
+  }
   test("Reading the JSON file") {
 
 
-    val in_file = Json.parse(scala.io.Source.fromFile(nn_demo_file.getFile).getLines().mkString("\n"))
-    println(in_file)
-  }
-  test("Simple Figure") {
 
-    val viewer = new SimpleScene("scenery - Neural Network Demo", 800, 600) with SingleBoxScene with EmptyAction with
-    StandardMaterials
-    viewer.main
+    val form_list: JsResult[Array[SceneObject]] = SceneObject.import_scene(nn_demo_file.getFile)
+
+
+    println(form_list)
+    form_list match {
+      case JsSuccess(cValue,_) => println(cValue.mkString(","))
+      case JsError(errors) => fail(s"List was not parsed correctly ${errors.mkString(",")}")
+    }
+
+  }
+
+  if (true) {
+    test("Simple Figure") {
+
+      val viewer = new SimpleScene("scenery - Neural Network Demo", 800, 600) with EmptyAction with
+        StandardMaterials with JSONSceneProvider {
+        /**
+          * Load the scene as a list
+          *
+          * @return
+          */
+        override def import_scene(): JsResult[Array[SceneObject]] = SceneObject.import_scene(nn_demo_file.getFile)
+      }
+      viewer.main
+    }
   }
 
 }
 
 object TestSceneThings {
+
 
   trait SingleBoxScene extends SceneProvider with SmartMaterialProvider {
     /**

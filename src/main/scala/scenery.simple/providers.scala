@@ -1,6 +1,8 @@
 
 package scenery.simple
 
+import play.api.libs.json.{JsResult, JsError, JsSuccess}
+
 import scala.collection.JavaConverters._
 import scenery._
 
@@ -16,16 +18,18 @@ object providers {
       *
       * @return map of materials
       */
-    def getMaterialList(): java.util.Map[String,Material]
+    def getMaterialList(): java.util.Map[String, Material]
+
     def getDefaultMaterial(): Material
   }
 
   trait SmartMaterialProvider extends MaterialProvider {
     val all_mats = getMaterialList()
     val def_mat = getDefaultMaterial()
+
     def getTexture(name: String) = {
-      if(!all_mats.containsKey(name)) println(s"Missing material: $name")
-      all_mats.getOrDefault(name,def_mat)
+      if (!all_mats.containsKey(name)) println(s"Missing material: $name")
+      all_mats.getOrDefault(name, def_mat)
     }
   }
 
@@ -122,6 +126,45 @@ object providers {
             e.printStackTrace
           }
         }
+      }
+      scene
+    }
+  }
+
+  trait JSONSceneProvider extends SceneProvider with SmartMaterialProvider {
+    /**
+      * Load the scene as a list
+      *
+      * @return
+      */
+    def import_scene(): JsResult[Array[SceneObject]]
+
+    override def loadProvidedScene(scene: Scene, cam: Camera) = {
+      import_scene() match {
+        case JsSuccess(all_obj, _) =>
+          all_obj.map {
+            _ match {
+              case SceneObject("box", texture, x_pos, y_pos, z_pos, x_dim, y_dim, z_dim) =>
+                val box = new Box(new GLVector(x_dim, y_dim, z_dim))
+                box.setMaterial(getTexture(texture))
+                box.setPosition(new GLVector(x_pos, y_pos, z_pos))
+                scene.addChild(box)
+              case SceneObject("sphere", texture, x_pos, y_pos, z_pos, x_dim, _, _) =>
+                val box = new Box(new GLVector(x_dim, x_dim, x_dim))
+                box.setMaterial(getTexture(texture))
+                box.setPosition(new GLVector(x_pos, y_pos, z_pos))
+                scene.addChild(box)
+              case SceneObject("light", _, x_pos, y_pos, z_pos, _, _, _) =>
+                val light = new PointLight();
+                light.setPosition(new GLVector(x_pos, y_pos, z_pos));
+                light.setEmissionColor(new GLVector(1.0f, 0.0f, 1.0f));
+                light.setIntensity(1);
+                scene.addChild(light);
+              case x =>
+                println(s"Unknown Object: $x")
+            }
+          }
+        case JsError(errors) => throw new IllegalArgumentException(s"Invalid JSON: ${errors.mkString(",")}")
       }
       scene
     }
